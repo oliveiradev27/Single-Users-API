@@ -12,7 +12,7 @@ const router = express.Router()
 var bodyParser = require('body-parser')
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }));
-var usermodel = require('./test').userModel()
+var usermodel = require('./db').userModel()
 
 const route = router.get('/', (request, response, next) => {
     response.status(200).send({
@@ -22,28 +22,61 @@ const route = router.get('/', (request, response, next) => {
 })
 
 const routeListUsers = router.get('/users', (request, response) => {
-    var db = require('./test')
     usermodel.findAll().then(users => {
         response.status(200).send(users)
     })
 })
 
+const routeListUsersActive = router.get('/users/active', (request, response) => {
+    usermodel.findAll({where : {status : true}}).then(users => {
+        response.status(200).send(users)
+    })
+})
+
+const routeSingleUser = router.get('/user/:id', (request, response) => {
+    usermodel.findById(request.params.id).then(user => {
+        response.status(200).send(user)
+    })
+})
+
 const routeInsertUsers = router.post('/user', (request, response) => {
-    var bodyRequest = request.body
-    var db = require('./test')
     usermodel.create({
-        id : bodyRequest.id,
-        name : bodyRequest.name,
-        bio : bodyRequest.bio,
-        status : bodyRequest.status
+        id : request.body.id,
+        name : request.body.name,
+        bio : request.body.bio,
+        status : request.body.status
     }).done(function(){
-        response.status(200).send({
-            message : "success!"
-        })
+        response.status(201).send()
+    })
+    
+})
+
+const routeUpdateUsers = router.put('/user/:id', (request, response) => {
+    usermodel.update({
+        name : request.body.name,
+        bio : request.body.bio,
+        status : request.body.status
+    },
+    {
+        where : {id : request.params.id}
+    }
+    ).done(function(){
+        response.status(200).send()
+    })
+})
+
+const routeDeleteUser = router.delete('/user/:id', (request, response) => {
+    usermodel.destroy( {  where : {id : request.params.id} }
+    ).done(function(){
+        response.status(202).send()
     })
 })
 
 app.use('/', route)
 app.use('/user', routeInsertUsers)
-app.use('/user', routeListUsers)
+app.use('/users', routeListUsers)
+app.use('/users/active', routeListUsersActive)
+app.use('/user/:id', routeUpdateUsers)
+app.use('/user/:id', routeSingleUser)
+app.use('/user/:id', routeDeleteUser)
 server.listen(port)
